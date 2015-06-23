@@ -36,13 +36,17 @@ function reset() {
 }
 
 function setup() {
+    var lang = window.navigator.userLanguage
+                   || window.navigator.language
+                   || window.navigator.browserLanguage;
+    lang = (lang.length >= 2) ? lang.substring(0, 2) : lang;
     var t = new Template();
     var select = document.getElementById("template");
     var i = 0;
     t.getTemplates().forEach(function(n) {
       var option = document.createElement('option');
       option.setAttribute('value', (n.id == undefined) ? i++ : n.id);
-      option.innerHTML = n.name;
+      option.innerHTML = (eval("n.name_" + lang) == undefined) ? n.name : eval("n.name_" + lang);
       select.appendChild(option);
     });
 
