@@ -12,25 +12,31 @@
                 padding: 6px 0;
             }
             canvas {
-                padding: 8px; 
+                padding: 0px;
                 border: 1px solid #888;
             }
             button {
                 margin: 6px 10px;
                 padding: 6px 12px;
-                border: 1px solid #888; 
+                border: 1px solid #888;
             }
         </style>
     </head>
     <body onload ="javascript: setup();">
         <div style="text-align: center;">
-            <canvas id="gameCanvas" width="256" height="256">Unsupported CANVAS</canvas>
+            <canvas id="gameCanvas" width="512" height="512">Unsupported CANVAS</canvas>
+            <div>
+                <select id="worldSize" onChange="changeSize()"></select>
+            </div>
             <div>
                 <select id="template" onChange="changeTemplate()"></select>
             </div>
             <div>
                 <button id="start_pause" onclick="startPause();">START</button>
                 <button onclick="reset();">RESET</button>
+            </div>
+            <div>
+                <button id="step" onclick="step();">STEP</button>
             </div>
         </div>
     </body>

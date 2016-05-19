@@ -1,11 +1,17 @@
 "use strict";
 
-function GameOfLife(t) {
+function GameOfLife(t, bit) {
     this.template = t;
-    var size = 256;
-    var maskY = 0xff00;
-    var maskX = 0x00ff;
-    var bitSize = 8;
+
+    var bitSize = bit;
+    var size = 256 >> (8 - bitSize);
+    var cellSize = 2 << (8 - bitSize);
+    var maskX = 0;
+    for (var i = 0; i < bitSize; i++) {
+        maskX = (maskX << 1) | 1;
+    }
+    var maskY = maskX << bitSize;
+
     var image = null;
     var canvas = null;
     var context = null;
@@ -33,6 +39,14 @@ function GameOfLife(t) {
     } else {
         this.requestAnimationFrame = function () { return setInterval(this.runFunc(), 16); };
         this.cancelAnimationFrame  = function () { clearInterval(this.timerID); };
+    }
+
+    this.run = function () {
+        drawFlag = false;
+        do {
+            nextGeneration();
+            draw();
+        } while(!drawFlag);
     }
 
     this.runFunc = function () {
@@ -65,6 +79,11 @@ function GameOfLife(t) {
         }
     }
 
+    this.step = function () {
+        nextGeneration();
+        draw();
+    }
+
     this.init = function () {
         current = 0;
         buff = new Array(2);
@@ -74,7 +93,7 @@ function GameOfLife(t) {
             buff[0][i] = 0;
             buff[1][i] = 0;
         }
-        for(var i = 0; i < size * size * 4; i += 4) {
+        for(var i = 0; i < size * cellSize * size * cellSize * 4 ; i += 4) {
             image.data[i + 3] = 255;
         }
     }
@@ -116,7 +135,8 @@ function GameOfLife(t) {
                     break;
 
                 case -3:    // randam pattern
-                    for (var i = 0; i < size * 100; i++) {
+                    var count = (size * size * 0.4) | 0;
+                    for (var i = 0; i < count; i++) {
                         target[(((Math.random() * size) | 0) << bitSize) | ((Math.random() * size) | 0)] = 1;
                     }
                     break;
@@ -142,8 +162,8 @@ function GameOfLife(t) {
     var onMouseMove = function(e) {
         if (mouseStartX < 0) return;
         var rect = e.target.getBoundingClientRect();
-        var x = (e.clientX - rect.left) | 0;
-        var y = (e.clientY - rect.top) | 0;
+        var x = (e.clientX - rect.left) / cellSize | 0;
+        var y = (e.clientY - rect.top) / cellSize | 0;
         line(x, y);
         mouseStartX = x;
         mouseStartY = y;
@@ -201,10 +221,9 @@ function GameOfLife(t) {
         if (mouseStartX < 0) {
             return;
         }
-
         var rect = e.target.getBoundingClientRect();
-        var x = (e.clientX - rect.left) | 0;
-        var y = (e.clientY - rect.top) | 0;
+        var x = (e.clientX - rect.left) / cellSize | 0;
+        var y = (e.clientY - rect.top) / cellSize | 0;
         line(x, y);
         mouseStartX = x;
         mouseStartY = y;
@@ -219,8 +238,8 @@ function GameOfLife(t) {
 
     var onMouseDown = function (e) {
         var rect = e.target.getBoundingClientRect();
-        mouseStartX = (e.clientX - rect.left) | 0;
-        mouseStartY = (e.clientY - rect.top) | 0;
+        mouseStartX = (e.clientX - rect.left) / cellSize | 0;
+        mouseStartY = (e.clientY - rect.top) / cellSize | 0;
         buff[current][mouseStartX | (mouseStartY << bitSize)] = 1;
         draw();
     }
@@ -231,31 +250,41 @@ function GameOfLife(t) {
             return false;
         }
         context = canvas.getContext("2d");
-        image = context.createImageData(size, size);
+        image = context.createImageData(size * cellSize, size * cellSize);
         addMouseEvent();
 
         return true;
     }
 
+    var drawCell = function(x, y, r, g, b) {
+        var i, j;
+        var sz = cellSize - 1;
+        var w = size * cellSize * 4;
+        var t = y * w * cellSize + x * cellSize * 4;
+        for (i = 0; i < sz; i++) {
+            for (j = 0; j < sz; j++) {
+                image.data[t + 0] = r;
+                image.data[t + 1] = g;
+                image.data[t + 2] = b;
+                t += 4;
+            }
+            t += w - (cellSize - 1) * 4;
+        }
+    }
+    
     var draw = function () {
         var target = buff[current];
-        var pt = 0;
-        for (var i = 0; i < size * size; i++) {
-            if (target[i] != 0) {
-                image.data[pt + 0] = 248;
-                image.data[pt + 1] = 248;
-                image.data[pt + 2] = 248;
-            } else {
-                image.data[pt + 0] = 48;
-                image.data[pt + 1] = 48;
-                image.data[pt + 2] = 48;
+        var i = 0;
+        for (var y = 0; y < size; y++) {
+            for (var x = 0; x < size; x++) {
+                if (target[i++] != 0) drawCell(x, y, 0, 255, 0);
+                else drawCell(x, y, 48, 48, 48);
             }
-            pt += 4;
         }
         context.putImageData(image, 0, 0);
         drawFlag = true;
     }
-
+    
     var nextGeneration = function() {
         var src = buff[current];
         var dest = buff[current ^ 1];
@@ -284,11 +313,4 @@ function GameOfLife(t) {
         return count - target[pt];
     }
 
-    this.run = function () {
-        drawFlag = false;
-        do {
-            nextGeneration();
-            draw();
-        } while(!drawFlag);
-    }
 }
